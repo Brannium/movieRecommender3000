@@ -110,7 +110,7 @@ class MovieRecommender():
         self.userRatings["sample_weight"] = self.userRatings["sample_weight"].astype(np.float32)
 
         # Build tag corpus: each movie's tags is one "sentence"
-        tag_corpus = movies_df["tags"].tolist()
+        tag_corpus = self.allMovies["tags"].tolist()
         print(f"Tag corpus sample: {tag_corpus[0]}")  # print first 5 for inspection
 
         # Train Word2Vec on tag co-occurrence in movies
@@ -142,11 +142,11 @@ class MovieRecommender():
 
         MAX_TAGS_PER_MOVIE = 64  # adjust
 
-        movies_df["tag_ids"] = movies_df["tags"].apply(lambda tags: self._tags_to_ids(tags, tag2idx))
+        self.allMovies["tag_ids"] = self.allMovies["tags"].apply(lambda tags: self._tags_to_ids(tags, tag2idx))
 
         # lookup: movie_id -> tag_id list
-        movieid2tags = dict(zip(movies_df["id"], movies_df["tag_ids"]))
-        all_movie_ids = movies_df["id"].tolist()
+        movieid2tags = dict(zip(self.allMovies["id"], self.allMovies["tag_ids"]))
+        all_movie_ids = self.allMovies["id"].tolist()
 
         # user_id -> list of positively rated movie_ids
         user_pos_movies = (
@@ -200,11 +200,11 @@ class MovieRecommender():
         batch_size_inference = 512  # Process movies in batches
 
         all_item_vecs = []
-        all_movie_ids = movies_df["id"].tolist()
+        all_movie_ids = self.allMovies["id"].tolist()
 
         with torch.no_grad():
-            for i in range(0, len(movies_df), batch_size_inference):
-                batch_tag_ids = movies_df.iloc[i:i+batch_size_inference]["tag_ids"].values
+            for i in range(0, len(self.allMovies), batch_size_inference):
+                batch_tag_ids = self.allMovies.iloc[i:i+batch_size_inference]["tag_ids"].values
                 batch_tensor = torch.tensor(
                     np.stack(batch_tag_ids),
                     dtype=torch.long
@@ -349,33 +349,3 @@ class TwoTowerRec(nn.Module):
         return logits
 
 
-
-# ---------------------------------------------------
-# Load movies
-# ---------------------------------------------------
-movies_df = pd.read_csv("data/movies.csv")  # must contain 'id' and 'tags'
-
-# If tags are stored as string like "['space', 'alien']"
-#if isinstance(movies_df.loc[0, "tags"], str):
-#    movies_df["tags"] = movies_df["tags"].apply(literal_eval)
-
-print(f"Loaded {len(movies_df)} movies.")
-
-# convert tags to list of strings that are divided by comma
-if isinstance(movies_df.loc[0, "tags"], str):
-    movies_df["tags"] = movies_df["tags"].apply(lambda x: [tag.strip() for tag in x.split(",")])
-print(movies_df.head())
-print(movies_df["tags"].dtypes)
-
-# ---------------------------------------------------
-# Load interactions
-# ---------------------------------------------------
-interactions_df = pd.read_csv("data/interactions.csv")
-# expected columns: user_id, movie_id, rating
-
-# load full movies dataset for title lookup
-movie_titles_df = pd.read_csv("../dataset/TMDB_movie_dataset_v11.csv")
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-movieRecommender = MovieRecommender(allMovies=movies_df, userRatings=interactions_df, movieTitles=movie_titles_df, device=device)
-movieRecommender.train_recommender()

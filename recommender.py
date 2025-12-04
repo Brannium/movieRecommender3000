@@ -69,13 +69,16 @@ class MovieRecommender():
 
         return np.array(tag_ids, dtype=np.int64)
 
-    def recommend_for_user(self, user_id, movieid2tags, item_vecs, all_movie_ids, top_k=20, exclude_seen=True):
-        user_tag_ids = self._build_user_tag_bag_for_user(user_id, movieid2tags)
+    def recommend_for_user(self, user_id, top_k=20, exclude_seen=True):
+        if not self.trained:
+            raise RuntimeError("Model not trained yet. Call train_recommender() first.")
+
+        user_tag_ids = self._build_user_tag_bag_for_user(user_id, self.movieid2tags)
         user_tag_ids = torch.tensor(user_tag_ids, dtype=torch.long).unsqueeze(0).to(self.device)
 
         with torch.no_grad():
             u_vec = self.model.user_encoder(user_tag_ids)           # [1, D]
-            item_vecs_device = item_vecs.to(self.device)            # Move item_vecs to device
+            item_vecs_device = self.item_vecs.to(self.device)            # Move item_vecs to device
             scores = (u_vec @ item_vecs_device.t()).squeeze(0) # [N_movies]
 
         scores_np = scores.cpu().numpy()
@@ -85,10 +88,10 @@ class MovieRecommender():
             seen_movies = set(
                 self.userRatings[self.userRatings["user_id"] == user_id]["movie_id"].tolist()
             )
-            ranked_idx = [i for i in ranked_idx if all_movie_ids[i] not in seen_movies]
+            ranked_idx = [i for i in ranked_idx if self.all_movie_ids[i] not in seen_movies]
 
         top_idx = ranked_idx[:top_k]
-        rec_ids = [all_movie_ids[i] for i in top_idx]
+        rec_ids = [self.all_movie_ids[i] for i in top_idx]
         rec_scores = scores_np[top_idx]
 
         return list(zip(rec_ids, rec_scores))
@@ -216,38 +219,13 @@ class MovieRecommender():
                 torch.cuda.empty_cache()
 
         item_vecs = torch.cat(all_item_vecs, dim=0)
-        item_vecs_np = item_vecs.cpu().numpy()
-
-
-        # Example:
-        user_id_example = 1
-        recommendations = self.recommend_for_user(user_id_example, movieid2tags, item_vecs, all_movie_ids, top_k=30)
         
-        for movie_id, score in recommendations:
-            movie_row = self.movieTitles[self.movieTitles["id"] == movie_id]
-            if not movie_row.empty:
-                title = movie_row.iloc[0]["title"]
-                print(f"Movie ID: {movie_id}, Title: {title}, Score: {score:.4f}")
-            else:
-                print(f"Movie ID: {movie_id}, Title: Unknown, Score: {score:.4f}")
+        self.movieid2tags = movieid2tags
+        self.item_vecs = item_vecs
+        self.all_movie_ids = all_movie_ids
+        self.trained = True
 
-        # print out the movies watched by the user with their ratings, formatted as table
-        watched_movies = self.userRatings[self.userRatings["user_id"] == user_id_example]
-        watched_movies = watched_movies.merge(self.movieTitles, left_on="movie_id", right_on="id", how="left")
-        watched_movies = watched_movies[["title", "rating"]]
-        print("\nMovies watched by user:")
-        print(watched_movies.to_string(index=False))
 
-        # print a list of recommended movies (titles with ratings)
-        print("\nRecommended movies:")
-        for movie_id, score in recommendations:
-            movie_row = self.movieTitles[self.movieTitles["id"] == movie_id]
-            if not movie_row.empty:
-                title = movie_row.iloc[0]["title"]
-                print(f"{score:.6f} - {title}")
-            else:
-                print(f"- Unknown (ID: {movie_id})")
-    
 
 class InteractionDataset(Dataset):
     def __init__(self, df, movieid2tags, user_pos_movies,

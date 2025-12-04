@@ -5,34 +5,30 @@ import pandas as pd
 import torch
 
 from recommender import MovieRecommender
+from datahandler import DataHandler
+from ui import MovieSelector3000UI
 
 
 if __name__ == "__main__":
 
-    # ---------------------------------------------------
-    # Load datasets
-    # ---------------------------------------------------
-    movies_df = pd.read_csv("data/movies.csv")  # must contain 'id' and 'tags'
-    interactions_df = pd.read_csv("data/interactions.csv") # expected columns: user_id, movie_id, rating
-    movie_titles_df = pd.read_csv("../dataset/TMDB_movie_dataset_v11.csv") # load full movies dataset for title lookup
+    # Load data
+    data_handler = DataHandler(
+        movies_filepath="data/movies.csv",
+        ratings_filepath="data/interactions.csv",
+        movie_titles_filepath="../dataset/TMDB_movie_dataset_v11.csv"
+    )
 
-    # If tags are stored as string like "['space', 'alien']"
-    #if isinstance(movies_df.loc[0, "tags"], str):
-    #    movies_df["tags"] = movies_df["tags"].apply(literal_eval)
-
-    print(f"Loaded {len(movies_df)} movies.")
-
-    # convert tags to list of strings that are divided by comma
-    if isinstance(movies_df.loc[0, "tags"], str):
-        movies_df["tags"] = movies_df["tags"].apply(lambda x: [tag.strip() for tag in x.split(",")])
-    print(movies_df.head())
-    print(movies_df["tags"].dtypes)
-
-    # ---------------------------------------------------
-    # Load interactions
-    # ---------------------------------------------------
-
+    movieUI = MovieSelector3000UI()
+    movieIDTitlePairs = data_handler.getMovieTitles().apply(lambda row: (row['id'], row['title']), axis=1).tolist()
+    movieUI.render_rating_screen(movieIDTitlePairs)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    movieRecommender = MovieRecommender(allMovies=movies_df, userRatings=interactions_df, movieTitles=movie_titles_df, device=device)
+    movieRecommender = MovieRecommender(allMovies=data_handler.getAllMovies(), userRatings=data_handler.getUserRatings(), movieTitles=data_handler.getMovieTitles(), device=device)
     movieRecommender.train_recommender()
+
+    recommendations = movieRecommender.recommend_for_user(user_id=1)
+    
+    print("\nTop recommended movies for user 1:")
+    for movie_id, score in recommendations:
+        title = data_handler.getMovieTitle(movie_id)
+        print(f"Score: {score:.7f}, Title: {title}")

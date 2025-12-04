@@ -106,6 +106,19 @@ function createMovieRow(movie) {
 
 async function rateMovie(movieId, rating) {
     try {
+        // Check if this movie is already rated with this rating
+        const currentRating = state.ratedMovies[movieId];
+        if (currentRating === rating) {
+            // Toggle off: remove the rating
+            delete state.ratedMovies[movieId];
+            
+            // Update UI immediately
+            updateMovieRow(movieId);
+            updateRatingCount(Object.keys(state.ratedMovies).length);
+            showSuccess('Rating removed!');
+            return;
+        }
+        
         const response = await fetch('/api/rate', {
             method: 'POST',
             headers: {
@@ -140,21 +153,37 @@ async function rateMovie(movieId, rating) {
 }
 
 function updateMovieRow(movieId) {
-    // Re-render the movies on current page to update button states
+    // Find the specific row for this movie and update only its buttons
     const rows = moviesBody.querySelectorAll('tr');
     rows.forEach(row => {
+        const titleCell = row.querySelector('.movie-title');
+        if (!titleCell) return;
+        
+        // Get the buttons in this specific row
         const buttons = row.querySelectorAll('.btn-rating');
         buttons.forEach(btn => {
             btn.classList.remove('active-dislike', 'active-like', 'active-superlike');
         });
         
-        const rating = state.ratedMovies[movieId];
-        if (rating === -1) {
-            buttons[0].classList.add('active-dislike');
-        } else if (rating === 1) {
-            buttons[1].classList.add('active-like');
-        } else if (rating === 2) {
-            buttons[2].classList.add('active-superlike');
+        // Get the rating for this specific movie from the title cell's parent row
+        // We need to match the movieId with the row - use data attribute or parse from onclick
+        const rateButtons = row.querySelectorAll('[onclick*="rateMovie"]');
+        if (rateButtons.length > 0) {
+            // Extract movieId from the first button's onclick attribute
+            const firstButtonOnclick = rateButtons[0].getAttribute('onclick');
+            const match = firstButtonOnclick.match(/rateMovie\((\d+),/);
+            if (match) {
+                const rowMovieId = parseInt(match[1]);
+                const rating = state.ratedMovies[rowMovieId];
+                
+                if (rating === -1) {
+                    buttons[0].classList.add('active-dislike');
+                } else if (rating === 1) {
+                    buttons[1].classList.add('active-like');
+                } else if (rating === 2) {
+                    buttons[2].classList.add('active-superlike');
+                }
+            }
         }
     });
 }

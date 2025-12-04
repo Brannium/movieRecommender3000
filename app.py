@@ -115,6 +115,9 @@ def submit_rating():
     # Validate rating value
     if rating not in [-1, 1, 2]:
         return jsonify({'error': 'Rating must be -1 (dislike), 1 (like), or 2 (superlike)'}), 400
+
+    # remove existing rating for this user and movie if exists
+    ratings_df = ratings_df[~((ratings_df['user_id'] == user_id) & (ratings_df['movie_id'] == movie_id))]
     
     # Add to ratings DataFrame
     new_rating = pd.DataFrame({
@@ -155,7 +158,7 @@ def get_recommendations():
     try:
         data = request.get_json()
         user_id = data.get('user_id', 1)
-        top_k = data.get('top_k', 20)
+        top_k = data.get('top_k', 50)
         
         # Validate that there are rated movies
         if len(ratings_df) < 20:

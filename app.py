@@ -150,47 +150,44 @@ def get_ratings():
 def get_recommendations():
     """
     Get movie recommendations based on rated movies
-    Expects JSON: {user_id: int, top_k: int (optional, default=20)}
-    Uses rated movies from the ratings_df to train/run recommender
+    Expects JSON: {user_id: int, top_k: int (optional, default=20), ratings: [{user_id, movie_id, rating}]}
+    Uses ratings passed from frontend to train/run recommender
     """
     global recommender
     
     try:
         data = request.get_json()
         user_id = data.get('user_id', 1)
-        top_k = data.get('top_k', 50)
+        top_k = data.get('top_k', 20)
+        ratings_list = data.get('ratings', [])
         
         # Validate that there are rated movies
-        if len(ratings_df) < 20:
+        if len(ratings_list) == 0:
             return jsonify({
-                'error': 'Not enough rated movies. Please rate at least 20 movies.',
+                'error': 'No rated movies provided. Please rate some movies first.',
                 'recommendations': []
             }), 400
         
-        # Initialize recommender if not already done
-        if recommender is None:
-            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-            recommender = MovieRecommender(
-                allMovies=data_handler.getAllMovies(),
-                userRatings=ratings_df,
-                movieTitles=data_handler.getMovieTitles(),
-                device=device
-            )
-            print("Training recommender model...")
-            recommender.train_recommender()
-            print("Recommender training complete.")
-        else:
-            # Update recommender with new ratings
-            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-            recommender = MovieRecommender(
-                allMovies=data_handler.getAllMovies(),
-                userRatings=ratings_df,
-                movieTitles=data_handler.getMovieTitles(),
-                device=device
-            )
-            print("Retraining recommender model with new ratings...")
-            recommender.train_recommender()
-            print("Recommender retraining complete.")
+        # Convert ratings list to DataFrame
+        user_ratings_df = pd.DataFrame(ratings_list)
+        
+        # Combine with existing ratings from the dataset
+        combined_ratings = pd.concat([
+            data_handler.getUserRatings(),
+            user_ratings_df
+        ], ignore_index=True)
+        
+        # Initialize and train recommender with combined ratings
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        recommender = MovieRecommender(
+            allMovies=data_handler.getAllMovies(),
+            userRatings=combined_ratings,
+            movieTitles=data_handler.getMovieTitles(),
+            device=device
+        )
+        print(f"Training recommender model with {len(user_ratings_df)} user ratings...")
+        recommender.train_recommender()
+        print("Recommender training complete.")
         
         # Get recommendations
         recommendations = recommender.recommend_for_user(user_id, top_k=top_k)

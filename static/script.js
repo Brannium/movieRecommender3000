@@ -104,52 +104,22 @@ function createMovieRow(movie) {
     return row;
 }
 
-async function rateMovie(movieId, rating) {
-    try {
-        // Check if this movie is already rated with this rating
-        const currentRating = state.ratedMovies[movieId];
-        if (currentRating === rating) {
-            // Toggle off: remove the rating
-            delete state.ratedMovies[movieId];
-            
-            // Update UI immediately
-            updateMovieRow(movieId);
-            updateRatingCount(Object.keys(state.ratedMovies).length);
-            showSuccess('Rating removed!');
-            return;
-        }
-        
-        const response = await fetch('/api/rate', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                user_id: state.userId,
-                movie_id: movieId,
-                rating: rating
-            })
-        });
-        
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'Failed to submit rating');
-        }
-        
-        const data = await response.json();
-        
-        // Update local state
+function rateMovie(movieId, rating) {
+    // Check if this movie is already rated with this rating
+    const currentRating = state.ratedMovies[movieId];
+    if (currentRating === rating) {
+        // Toggle off: remove the rating
+        delete state.ratedMovies[movieId];
+        showSuccess('Rating removed!');
+    } else {
+        // Update local state only
         state.ratedMovies[movieId] = rating;
-        
-        // Update UI
-        updateMovieRow(movieId);
-        updateRatingCount(data.rating_count);
         showSuccess(`Movie rated! (${getRatingLabel(rating)})`);
-        
-    } catch (error) {
-        console.error('Error rating movie:', error);
-        showError(error.message || 'Failed to submit rating');
     }
+    
+    // Update UI immediately
+    updateMovieRow(movieId);
+    updateRatingCount(Object.keys(state.ratedMovies).length);
 }
 
 function updateMovieRow(movieId) {
@@ -236,8 +206,8 @@ function updateInfoBar(data) {
     movieCount.textContent = `Showing ${data.movies.length} of ${data.total} movies${searchTerm}`;
 }
 
-async function updateRatingCount(count) {
-    ratingCount.textContent = `Ratings submitted: ${count}`;
+function updateRatingCount(count) {
+    ratingCount.textContent = `Ratings: ${count} (local only)`;
 }
 
 function escapeHtml(text) {
@@ -287,6 +257,13 @@ async function fetchRecommendations() {
         recommendationsModal.classList.add('show');
         recommendationsContainer.innerHTML = '<div class="loading">🔄 Training model and generating recommendations...<br><small>This may take a moment</small></div>';
         
+        // Convert ratedMovies object to array of rating objects
+        const ratings = Object.entries(state.ratedMovies).map(([movieId, rating]) => ({
+            user_id: state.userId,
+            movie_id: parseInt(movieId),
+            rating: rating
+        }));
+        
         const response = await fetch('/api/recommend', {
             method: 'POST',
             headers: {
@@ -294,7 +271,8 @@ async function fetchRecommendations() {
             },
             body: JSON.stringify({
                 user_id: state.userId,
-                top_k: 20
+                top_k: 20,
+                ratings: ratings
             })
         });
         

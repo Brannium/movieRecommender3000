@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MovieSelector3000 - Rate Movies</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎬 MovieSelector3000</h1>
+            <p>Rate movies to help us improve recommendations</p>
+        </header>
+
+        <div class="search-bar">
+            <input 
+                type="text" 
+                id="searchInput" 
+                placeholder="Search movies by title..." 
+                autocomplete="off"
+            >
+            <button id="clearBtn" class="btn-clear">Clear</button>
+        </div>
+
+    <div class="info-bar">
+        <span id="movieCount">Loading...</span>
+        <span id="ratingCount" class="rating-count">Ratings submitted: 0</span>
+        <button id="recommendBtn" class="btn-recommend" title="Get recommendations based on rated movies">✨ Get Recommendations</button>
+    </div>        <div class="movies-container">
+            <table id="moviesTable">
+                <thead>
+                    <tr>
+                        <th>Movie Title</th>
+                        <th style="width: 300px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="moviesBody">
+                    <tr class="loading">
+                        <td colspan="2">Loading movies...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="pagination">
+            <button id="prevBtn" class="btn-nav" disabled>← Previous</button>
+            <span id="pageInfo">Page 1</span>
+            <button id="nextBtn" class="btn-nav" disabled>Next →</button>
+        </div>
+
+        <div class="footer">
+            <p id="footerMsg">Ready to rate movies!</p>
+        </div>
+    </div>
+
+    <!-- Recommendations Modal -->
+    <div id="recommendationsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>✨ Recommended For You</h2>
+                <button class="modal-close" onclick="closeRecommendations()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="recommendationsContainer" class="recommendations-container">
+                    <div class="loading">Loading recommendations...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

@@ -6,13 +6,16 @@ import json
 
 class DataHandler():
     def __init__(self, movies_filepath, ratings_filepath, movie_titles_filepath):
-        self.movies_df = pd.read_csv(movies_filepath)                # must contain 'id' and 'tags'
+        self.movies_df = pd.read_csv(movies_filepath)                # must contain 'id' and 'keywords' or 'tags'
         self.interactions_df = pd.read_csv(ratings_filepath)         # expected columns: user_id, movie_id, rating
         self.movie_titles_df = pd.read_csv(movie_titles_filepath)    # load full movies dataset for title lookup
 
-        # convert tags to list of strings that are divided by comma
-        if isinstance(self.movies_df.loc[0, "tags"], str):
-            self.movies_df["tags"] = self.movies_df["tags"].apply(lambda x: [tag.strip() for tag in x.split(",")])
+        # convert keywords/tags to list of strings that are divided by comma
+        # Handle both 'keywords' (new format) and 'tags' (old format)
+        keywords_col = 'keywords' if 'keywords' in self.movies_df.columns else 'tags'
+        if keywords_col in self.movies_df.columns and len(self.movies_df) > 0:
+            if isinstance(self.movies_df.loc[0, keywords_col], str):
+                self.movies_df[keywords_col] = self.movies_df[keywords_col].apply(lambda x: [tag.strip() for tag in x.split(",")])
 
         print(f"Loaded {len(self.movies_df)} movies.")
         

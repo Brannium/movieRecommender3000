@@ -11,10 +11,9 @@ app = Flask(__name__, template_folder='templates', static_folder='static')
 CORS(app)
 
 # Configuration
-DATA_DIR = os.path.join(os.path.dirname(__file__), '..', 'dataset')
-MOVIES_FILE = os.path.join(DATA_DIR, 'movies_stripped.csv')
-RATINGS_FILE = os.path.join(DATA_DIR, 'interactions.csv')
-TITLES_FILE = os.path.join(DATA_DIR, 'TMDB_movie_dataset_v11.csv')
+MOVIES_FILE = "data/movies.csv"
+RATINGS_FILE = "data/interactions.csv"
+TITLES_FILE = "../dataset/TMDB_movie_dataset_v11.csv"
 
 # Load data at app startup
 data_handler = DataHandler(MOVIES_FILE, RATINGS_FILE, TITLES_FILE)
@@ -159,24 +158,18 @@ def get_recommendations():
         top_k = data.get('top_k', 20)
         
         # Validate that there are rated movies
-        if len(ratings_df) == 0:
+        if len(ratings_df) < 20:
             return jsonify({
-                'error': 'No rated movies yet. Please rate some movies first.',
+                'error': 'Not enough rated movies. Please rate at least 20 movies.',
                 'recommendations': []
             }), 400
-        
-        # Create a combined ratings dataframe including existing ratings + new ones
-        combined_ratings = pd.concat([
-            data_handler.getUserRatings(),
-            ratings_df[ratings_df['user_id'] == user_id]
-        ], ignore_index=True)
         
         # Initialize recommender if not already done
         if recommender is None:
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
             recommender = MovieRecommender(
                 allMovies=data_handler.getAllMovies(),
-                userRatings=combined_ratings,
+                userRatings=ratings_df,
                 movieTitles=data_handler.getMovieTitles(),
                 device=device
             )
@@ -188,7 +181,7 @@ def get_recommendations():
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
             recommender = MovieRecommender(
                 allMovies=data_handler.getAllMovies(),
-                userRatings=combined_ratings,
+                userRatings=ratings_df,
                 movieTitles=data_handler.getMovieTitles(),
                 device=device
             )

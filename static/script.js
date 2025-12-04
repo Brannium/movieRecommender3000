@@ -271,7 +271,7 @@ async function fetchRecommendations() {
             },
             body: JSON.stringify({
                 user_id: state.userId,
-                top_k: 20,
+                top_k: 50,
                 ratings: ratings
             })
         });

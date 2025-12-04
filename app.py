@@ -162,26 +162,20 @@ def get_recommendations():
         ratings_list = data.get('ratings', [])
         
         # Validate that there are rated movies
-        if len(ratings_list) == 0:
+        if len(ratings_list) < 20:
             return jsonify({
-                'error': 'No rated movies provided. Please rate some movies first.',
+                'error': 'Not enough ratings provided. Please rate at least 20 movies to get recommendations.',
                 'recommendations': []
             }), 400
         
         # Convert ratings list to DataFrame
         user_ratings_df = pd.DataFrame(ratings_list)
         
-        # Combine with existing ratings from the dataset
-        combined_ratings = pd.concat([
-            data_handler.getUserRatings(),
-            user_ratings_df
-        ], ignore_index=True)
-        
-        # Initialize and train recommender with combined ratings
+        # Initialize and train recommender with user ratings
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         recommender = MovieRecommender(
             allMovies=data_handler.getAllMovies(),
-            userRatings=combined_ratings,
+            userRatings=user_ratings_df,
             movieTitles=data_handler.getMovieTitles(),
             device=device
         )

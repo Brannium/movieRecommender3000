@@ -44,9 +44,10 @@ The application will start on `http://localhost:5000`
 
 ```
 movieselector3000/
-├── app.py                    # Flask application
-├── datahandler.py           # Data loading utility
-├── requirements.txt         # Python dependencies
+├── app.py                  # Flask application
+├── datahandler.py          # Data loading utility
+├── recommender.py          # AI model
+├── requirements.txt        # Python dependencies
 ├── templates/
 │   └── index.html          # HTML template
 └── static/

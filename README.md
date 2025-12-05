@@ -2,6 +2,8 @@
 
 ## Setup
 
+The setup was tested on Debian 13.
+
 ### 1. Install Dependencies
 
 ```bash

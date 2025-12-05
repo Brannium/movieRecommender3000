@@ -13,7 +13,7 @@ CORS(app)
 # Configuration
 MOVIES_FILE = "data/movies.csv"
 RATINGS_FILE = "data/interactions.csv"
-TITLES_FILE = "../dataset/TMDB_movie_dataset_v11.csv"
+TITLES_FILE = "data/TMDB_movie_dataset_v11.csv"
 
 # Load data at app startup
 data_handler = DataHandler(MOVIES_FILE, RATINGS_FILE, TITLES_FILE)

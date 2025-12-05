@@ -5,14 +5,25 @@
 ### 1. Install Dependencies
 
 ```bash
-cd movie-recommender/movieselector3000
-pip install -r requirements.txt
+cd movieselector3000
+conda env create -f requirements.yml
 ```
+
+If the requirements.yml does not work, you can install the following packages manually:
+```bash
+flask
+flask_cors
+pandas
+pytorch
+pytorch-gpu
+gensim
+```
+
 
 ### 2. Prepare Data
 
-Ensure these files exist in the `dataset/` directory:
-- `movies_stripped.csv` - Contains movie IDs
+Ensure these files exist in the `data/` directory:
+- `movies.csv` - Contains movie IDs
 - `interactions.csv` - User ratings (columns: user_id, movie_id, rating), currently not used but need to be present
 - `TMDB_movie_dataset_v11.csv` - Movie titles and metadata ([download here](https://www.kaggle.com/datasets/asaniczka/tmdb-movies-dataset-2023-930k-movies))
 
@@ -77,7 +88,7 @@ app.run(debug=True, port=5000)
 ## Troubleshooting
 
 **"File not found" errors:**
-- Ensure all CSV files exist in the `dataset/` directory
+- Ensure all CSV files exist in the `data/` directory
 - Check file paths in `app.py`
 
 **Port 5000 already in use:**

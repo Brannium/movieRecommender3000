@@ -170,7 +170,7 @@ class MovieRecommender():
         criterion = nn.BCEWithLogitsLoss(reduction="none")   # so we can apply weights
         optimizer = torch.optim.Adam(self.model.parameters(), lr=1e-3)
 
-        EPOCHS = 80
+        EPOCHS = 100
 
         for epoch in range(EPOCHS):
             self.model.train()
